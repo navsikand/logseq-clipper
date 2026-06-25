@@ -27,8 +27,10 @@ const RULES = [
 	[/Obsidian app/gi, 'Logseq app'],
 	[/Obsidian desktop/gi, 'Logseq desktop'],
 	[/Obsidian sync/gi, 'Logseq sync'],
-	// Help/docs URLs — point to Logseq docs root (no deep-link equivalents)
-	[/https:\/\/help\.obsidian\.md\/[^"]*/g, 'https://docs.logseq.com/'],
+	// Help/docs URLs — point to Logseq docs root (no deep-link equivalents).
+	// NOTE: stop at whitespace, quote, OR backslash so we don't consume the JSON
+	// escape char before the closing quote (e.g. `href=\"https://...\"`).
+	[/https:\/\/help\.obsidian\.md\/[^\s"\\]*/g, 'https://docs.logseq.com/'],
 	[/https:\/\/help\.obsidian\.md/g, 'https://docs.logseq.com/'],
 	// Literal ".obsidian" config folder name → "logseq" (Logseq's config dir is `logseq/`)
 	[/\.obsidian\b/g, 'logseq'],

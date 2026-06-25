@@ -32,18 +32,16 @@ export interface DeliveryBackend {
 	save(params: SaveParams): Promise<void>;
 }
 
-const backends: Record<BackendKind, DeliveryBackend> = {
-	obsidian: obsidianBackend,
-	logseq: logseqBackend,
-};
-
 /**
  * Returns the active delivery backend, selected at build time by DELIVERY_BACKEND.
  *
- * Both backends are imported statically so bundlers can resolve them at build time.
- * Dead-code elimination will tree-shake the unused backend in production builds
- * when DELIVERY_BACKEND is a string-literal constant (DefinePlugin replaces it).
+ * The conditional (rather than a lookup table) lets the bundler's dead-code
+ * eliminator strip the unused backend when DELIVERY_BACKEND is a string-literal
+ * constant (DefinePlugin replaces it). Result: a Logseq build ships no
+ * Obsidian-backend code, and vice versa.
  */
 export function getDeliveryBackend(kind: BackendKind = DELIVERY_BACKEND): DeliveryBackend {
-	return backends[kind] ?? backends.obsidian;
+	// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+	if (kind === 'logseq') return logseqBackend;
+	return obsidianBackend;
 }

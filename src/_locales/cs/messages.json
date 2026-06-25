@@ -202,7 +202,7 @@
 				"content": "</a>"
 			},
 			"link_start": {
-				"content": "<a href=\"https://docs.logseq.com/" target=\"_blank\">"
+				"content": "<a href=\"https://docs.logseq.com/\" target=\"_blank\">"
 			}
 		}
 	},
@@ -237,7 +237,7 @@
 				"content": "</a>"
 			},
 			"link_start": {
-				"content": "<a href=\"https://docs.logseq.com/" target=\"_blank\">"
+				"content": "<a href=\"https://docs.logseq.com/\" target=\"_blank\">"
 			},
 			"strong_end": {
 				"content": "</strong>"
