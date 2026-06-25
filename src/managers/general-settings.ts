@@ -21,6 +21,19 @@ import { showModal, hideModal } from '../utils/modal-utils';
 
 dayjs.extend(weekOfYear);
 
+// Logseq has no vault concept. Hide the vaults settings subsection on the
+// Logseq backend so users don't see a non-functional UI. The vault dropdown
+// in the popup already self-hides when no vaults are configured.
+// Kept as a runtime check rather than tree-shaken so that flipping
+// DELIVERY_BACKEND at build time is the only change needed.
+declare const DELIVERY_BACKEND: 'obsidian' | 'logseq';
+if (typeof DELIVERY_BACKEND !== 'undefined' && DELIVERY_BACKEND === 'logseq') {
+	document.addEventListener('DOMContentLoaded', () => {
+		const vaultsSection = document.getElementById('vaults-subsection');
+		if (vaultsSection) vaultsSection.style.display = 'none';
+	});
+}
+
 const STORE_URLS = {
 	chrome: 'https://chromewebstore.google.com/detail/obsidian-web-clipper/cnjifjpddelmedmihgijeibhnjfabmlf',
 	firefox: 'https://addons.mozilla.org/en-US/firefox/addon/web-clipper-obsidian/',
