@@ -32,10 +32,10 @@ export default class I18nAutomation {
 	private initializeChatHistory(targetLanguage: string) {
 		this.chatHistories[targetLanguage] = [{
 			role: "system",
-			content: `You are a professional translator for the Obsidian Web Clipper browser extension.
+			content: `You are a professional translator for the Logseq Web Clipper browser extension.
 
 About the extension:
-- It's a browser extension that helps users save web content to their Obsidian vault
+- It's a browser extension that helps users save web content to their Logseq graph
 - Users can clip entire articles, selected text, or highlights
 - It includes features for customizing templates, managing settings, and organizing clips
 - The interface needs to be clear and concise
@@ -84,7 +84,7 @@ Example response:
 					'Authorization': `Bearer ${this.apiKey}`
 				},
 				body: JSON.stringify({
-					model: "gpt-4",
+					model: "gpt-5.2",
 					messages: messages,
 					temperature: 0.3
 				})
@@ -93,6 +93,9 @@ Example response:
 			this.lastRequestTime = Date.now();
 
 			if (!response.ok) {
+				const errorBody = await response.text();
+				console.error(`  ❌ API Error ${response.status}: ${errorBody}`);
+
 				if (response.status === 429) {
 					const retryAfter = response.headers.get('retry-after');
 					const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : this.requestInterval * Math.pow(2, retryCount);
@@ -100,7 +103,7 @@ Example response:
 					await this.sleep(waitTime);
 					return this.makeRequestWithRetry(messages, retryCount + 1);
 				}
-				throw new Error(`OpenAI API error: ${response.statusText}`);
+				throw new Error(`OpenAI API error: ${response.status} ${response.statusText} - ${errorBody}`);
 			}
 
 			// Reset the request interval on successful response
