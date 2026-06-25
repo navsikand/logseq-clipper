@@ -1,110 +1,94 @@
-import { replace } from './filters/replace';
 import browser from './browser-polyfill';
-import { escapeDoubleQuotes, sanitizeFileName } from '../utils/string-utils';
+import { sanitizeFileName } from '../utils/string-utils';
+import { generateFrontmatter as generateFrontmatterCore } from './shared';
 import { Template, Property } from '../types/types';
-import { generalSettings } from './storage-utils';
+import { generalSettings, incrementStat } from './storage-utils';
+import { copyToClipboard } from './clipboard-utils';
+import { getMessage } from './i18n';
 
 export async function generateFrontmatter(properties: Property[]): Promise<string> {
-	let frontmatter = '\u200B\n';
-	for (const property of properties) {
-		frontmatter += `${property.name}::`; // Use double colons
-
-		const propertyType = generalSettings.propertyTypes.find(p => p.name === property.name)?.type || 'text';
-
-		switch (propertyType) {
-			case 'multitext':
-				if (property.name === 'tags') {
-					const tags = property.value
-						.split(' ')
-						.map(tag => tag.replace(/,/g, '').trim())
-						.filter(tag => tag !== '');
-					if (tags.length > 0) {
-						const formattedTags = tags.map(tag => `${tag}`).join(',');
-						frontmatter += ` ${formattedTags}\n`;
-					} else {
-						frontmatter += '\n';
-					}
-					break;
-				}
-				let items: string[];
-				if (property.value.trim().startsWith('["') && property.value.trim().endsWith('"]')) {
-					try {
-						items = JSON.parse(property.value);
-					} catch (e) {
-						// If parsing fails, fall back to splitting by comma
-						items = property.value.split(',').map(item => item.trim());
-					}
-				} else {
-					// Split by comma, but keep wikilinks intact
-					items = property.value.split(/,(?![^\[]*\]\])/).map(item => item.trim());
-				}
-				items = items.filter(item => item !== '');
-				if (items.length > 0) {
-					items.forEach(item => {
-						frontmatter += ` ${escapeDoubleQuotes(item)}`;
-					});
-				}
-				frontmatter += '\n';
-				break;
-			case 'number':
-				const numericValue = property.value.replace(/[^\d.-]/g, '');
-				frontmatter += numericValue ? ` ${parseFloat(numericValue)}\n` : '\n';
-				break;
-			case 'checkbox':
-				const isChecked = typeof property.value === 'boolean' ? property.value : property.value === 'true';
-				frontmatter += ` ${isChecked}\n`;
-				break;
-			case 'date':
-			case 'datetime':
-				if (property.value.trim() !== '') {
-					frontmatter += ` ${property.value}\n`;
-				} else {
-					frontmatter += '\n';
-				}
-				break;
-			default: // Text
-				frontmatter += property.value.trim() !== '' ? ` "${escapeDoubleQuotes(property.value)}"\n` : '\n';
-		}
+	const typeMap: Record<string, string> = {};
+	for (const pt of generalSettings.propertyTypes) {
+		typeMap[pt.name] = pt.type;
 	}
+	return generateFrontmatterCore(properties, typeMap);
+}
 
-	// Check if the frontmatter is empty
-	if (frontmatter.trim() === '---\n---') {
-		return '';
+function openObsidianUrl(url: string): void {
+	browser.runtime.sendMessage({
+		action: "openObsidianUrl",
+		url: url
+	}).catch((error) => {
+		console.error('Error opening Obsidian URL via background script:', error);
+		window.open(url, '_blank');
+	});
+}
+
+async function tryClipboardWrite(fileContent: string, obsidianUrl: string): Promise<void> {
+	const success = await copyToClipboard(fileContent);
+	
+	if (success) {
+		// &clipboard tells Obsidian to read data from clipboard instead of the content param.
+		// content is a fallback shown only if Obsidian can't access the clipboard (e.g. on Linux).
+		obsidianUrl += `&clipboard&content=${encodeURIComponent(getMessage('clipboardError', 'https://help.obsidian.md/web-clipper/troubleshoot'))}`;
+		openObsidianUrl(obsidianUrl);
+		console.log('Obsidian URL:', obsidianUrl);
+	} else {
+		console.error('All clipboard methods failed, falling back to URI method');
+		// Final fallback: use URI method with actual content (same as legacy mode)
+		// Note: We don't add &clipboard here since we're bypassing the clipboard entirely
+		obsidianUrl += `&content=${encodeURIComponent(fileContent)}`;
+		openObsidianUrl(obsidianUrl);
+		console.log('Obsidian URL (URI fallback):', obsidianUrl);
 	}
-
-	return frontmatter;
 }
 
 export async function saveToObsidian(
 	fileContent: string,
 	noteName: string,
+	path: string,
+	vault: string,
 	behavior: Template['behavior'],
 ): Promise<void> {
 	let obsidianUrl: string;
 
-	const isDailyNote = behavior === 'append-daily'
+	const isDailyNote = behavior === 'append-daily' || behavior === 'prepend-daily';
 
 	if (isDailyNote) {
-		obsidianUrl = `logseq://x-callback-url/quickCapture?page=TODAY&append=true`;
+		obsidianUrl = `obsidian://daily?`;
 	} else {
+		// Ensure path ends with a slash
+		if (path && !path.endsWith('/')) {
+			path += '/';
+		}
+
 		const formattedNoteName = sanitizeFileName(noteName);
-		obsidianUrl = `logseq://x-callback-url/quickCapture?page=${formattedNoteName}`;
+		obsidianUrl = `obsidian://new?file=${encodeURIComponent(path + formattedNoteName)}`;
 	}
+
+	if (behavior.startsWith('append')) {
+		obsidianUrl += '&append=true';
+	} else if (behavior.startsWith('prepend')) {
+		obsidianUrl += '&prepend=true';
+	} else if (behavior === 'overwrite') {
+		obsidianUrl += '&overwrite=true';
+	}
+
+	const vaultParam = vault ? `&vault=${encodeURIComponent(vault)}` : '';
+	obsidianUrl += vaultParam;
 
 	// Add silent parameter if silentOpen is enabled
 	if (generalSettings.silentOpen) {
 		obsidianUrl += '&silent=true';
 	}
 
-	obsidianUrl += `&content=${encodeURIComponent(fileContent)}`;
-	openObsidianUrl(obsidianUrl);
-
-	function openObsidianUrl(url: string): void {
-		browser.tabs.query({ active: true, currentWindow: true }).then((tabs) => {
-			const currentTab = tabs[0];
-			if (currentTab && currentTab.id) {
-				browser.tabs.update(currentTab.id, { url: url });
-			}
-		});
+	if (generalSettings.legacyMode) {
+		// Use the URI method
+		obsidianUrl += `&content=${encodeURIComponent(fileContent)}`;
+		console.log('Obsidian URL:', obsidianUrl);
+		openObsidianUrl(obsidianUrl);
+	} else {
+		// Try to copy to clipboard with fallback mechanisms
+		await tryClipboardWrite(fileContent, obsidianUrl);
 	}
 }

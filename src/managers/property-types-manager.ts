@@ -31,12 +31,13 @@ export function updatePropertyTypesList(): void {
 	const deleteUnusedButton = document.getElementById('delete-unused-properties-btn');
 	if (!propertyTypesList || !deleteUnusedButton) return;
 
-	propertyTypesList.innerHTML = '';
+	// Clear existing property types
+	propertyTypesList.textContent = '';
 
 	const propertyUsageCounts = countPropertyUsage();
 
 	// Sort all property types alphabetically
-	const sortedPropertyTypes = [...generalSettings.propertyTypes].sort((a, b) =>
+	const sortedPropertyTypes = [...generalSettings.propertyTypes].sort((a, b) => 
 		a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
 	);
 
@@ -92,7 +93,8 @@ function createPropertyTypeListItem(propertyType: PropertyType, usageCount: numb
 	['text', 'multitext', 'number', 'checkbox', 'date', 'datetime'].forEach(type => {
 		const option = document.createElement('option');
 		option.value = type;
-		option.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+		const messageKey = `propertyType${type.charAt(0).toUpperCase() + type.slice(1)}`;
+		option.textContent = getMessage(messageKey);
 		select.appendChild(option);
 	});
 	select.value = propertyType.type;
@@ -134,12 +136,12 @@ function createPropertyTypeListItem(propertyType: PropertyType, usageCount: numb
 	}
 
 	if (propertyType.name !== 'tags') {
-		select.addEventListener('change', function () {
+		select.addEventListener('change', function() {
 			updateSelectedOption(this.value, propertySelectedDiv);
 			updatePropertyType(propertyType.name, this.value, defaultValueInput.value).then(updatePropertyTypesList);
 		});
 
-		defaultValueInput.addEventListener('change', function () {
+		defaultValueInput.addEventListener('change', function() {
 			updatePropertyType(propertyType.name, select.value, this.value).then(updatePropertyTypesList);
 		});
 	} else {
@@ -153,14 +155,14 @@ function createPropertyTypeListItem(propertyType: PropertyType, usageCount: numb
 
 function updateSelectedOption(value: string, propertySelected: HTMLElement): void {
 	const iconName = getPropertyTypeIcon(value);
-
+	
 	// Clear existing content
-	propertySelected.innerHTML = '';
-
+	propertySelected.textContent = '';
+	
 	// Create and append the new icon element
 	const iconElement = createElementWithHTML('i', '', { 'data-lucide': iconName });
 	propertySelected.appendChild(iconElement);
-
+	
 	propertySelected.setAttribute('data-value', value);
 	initializeIcons(propertySelected);
 }
@@ -344,7 +346,7 @@ function setupDeleteUnusedPropertiesButton(): void {
 
 async function deleteUnusedProperties(): Promise<void> {
 	const usedProperties = new Set<string>();
-
+	
 	// Collect all properties used in templates
 	templates.forEach(template => {
 		template.properties.forEach(property => {
@@ -354,7 +356,7 @@ async function deleteUnusedProperties(): Promise<void> {
 
 	// Filter out unused properties
 	const unusedProperties = generalSettings.propertyTypes.filter(pt => !usedProperties.has(pt.name) && pt.name !== 'tags');
-
+	
 	if (unusedProperties.length === 0) {
 		alert(getMessage('noUnusedProperties'));
 		return;
