@@ -1,7 +1,7 @@
 import dayjs from 'dayjs';
 import { Template, Property, PromptVariable } from '../types/types';
 import { incrementStat, addHistoryEntry, getClipHistory } from '../utils/storage-utils';
-import { generateFrontmatter, saveToObsidian } from '../utils/obsidian-note-creator';
+import { generateFrontmatter, saveToObsidian, combineContent } from '../utils/obsidian-note-creator';
 import { extractPageContent, initializePageContent } from '../utils/content-extractor';
 import { compileTemplate } from '../utils/template-compiler';
 import { initializeIcons, getPropertyTypeIcon } from '../icons/icons';
@@ -468,7 +468,7 @@ function setupEventListeners(tabId: number) {
 
 			const noteContentField = document.getElementById('note-content-field') as HTMLTextAreaElement;
 			const frontmatter = await generateFrontmatter(properties);
-			const fileContent = frontmatter + noteContentField.value;
+			const fileContent = combineContent(frontmatter, noteContentField.value);
 			
 			await copyToClipboard(fileContent);
 		});
@@ -492,7 +492,7 @@ function setupEventListeners(tabId: number) {
 					generateFrontmatter(properties),
 					Promise.resolve(noteContentField.value)
 				]).then(([frontmatter, noteContent]) => {
-					const fileContent = frontmatter + noteContent;
+					const fileContent = combineContent(frontmatter, noteContent);
 					
 					// Call share directly from the click handler
 					const noteNameField = document.getElementById('note-name-field') as HTMLInputElement;
@@ -1252,7 +1252,7 @@ async function handleSaveToDownloads() {
 
 		const noteContentField = document.getElementById('note-content-field') as HTMLTextAreaElement;
 		const frontmatter = await generateFrontmatter(properties);
-		const fileContent = frontmatter + noteContentField.value;
+		const fileContent = combineContent(frontmatter, noteContentField.value);
 
 		await saveFile({
 			content: fileContent,
@@ -1338,7 +1338,7 @@ async function handleClipObsidian(): Promise<void> {
 		const properties = getPropertiesFromDOM();
 
 		const frontmatter = await generateFrontmatter(properties);
-		const fileContent = frontmatter + noteContentField.value;
+		const fileContent = combineContent(frontmatter, noteContentField.value);
 
 		// Save to Obsidian
 		const selectedVault = vaultDropdown.value || currentTemplate.vault || '';
@@ -1404,7 +1404,7 @@ async function copyContent() {
 
 	const noteContentField = document.getElementById('note-content-field') as HTMLTextAreaElement;
 	const frontmatter = await generateFrontmatter(properties);
-	const fileContent = frontmatter + noteContentField.value;
+	const fileContent = combineContent(frontmatter, noteContentField.value);
 	await copyToClipboard(fileContent);
 }
 

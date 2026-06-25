@@ -171,7 +171,10 @@ module.exports = (env, argv) => {
 			},
 			new webpack.DefinePlugin({
 				'process.env.NODE_ENV': JSON.stringify(argv.mode),
-				'DEBUG_MODE': JSON.stringify(!isProduction)
+				'DEBUG_MODE': JSON.stringify(!isProduction),
+				// Delivery backend selection: 'logseq' or 'obsidian'.
+				// See docs/delivery-backend.md for the abstraction design.
+				'DELIVERY_BACKEND': JSON.stringify('logseq')
 			}),
 			...(isProduction ? [
 				new ZipPlugin({
