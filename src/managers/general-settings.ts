@@ -34,11 +34,13 @@ if (typeof DELIVERY_BACKEND !== 'undefined' && DELIVERY_BACKEND === 'logseq') {
 	});
 }
 
+// Logseq Web Clipper is not yet published to any extension store.
+// Rate/review links point at the GitHub project until store listings exist.
 const STORE_URLS = {
-	chrome: 'https://chromewebstore.google.com/detail/obsidian-web-clipper/cnjifjpddelmedmihgijeibhnjfabmlf',
-	firefox: 'https://addons.mozilla.org/en-US/firefox/addon/web-clipper-obsidian/',
-	safari: 'https://apps.apple.com/us/app/obsidian-web-clipper/id6720708363',
-	edge: 'https://microsoftedge.microsoft.com/addons/detail/obsidian-web-clipper/eigdjhmgnaaeaonimdklocfekkaanfme'
+	chrome: 'https://github.com/navsikand/logseq-clipper',
+	firefox: 'https://github.com/navsikand/logseq-clipper',
+	safari: 'https://github.com/navsikand/logseq-clipper',
+	edge: 'https://github.com/navsikand/logseq-clipper'
 };
 
 export function updateVaultList(): void {
