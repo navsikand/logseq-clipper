@@ -2,6 +2,7 @@ import { execFile } from 'child_process';
 import { promisify } from 'util';
 import { sanitizeFileName } from './string-utils';
 import { Template } from '../types/types';
+import { getDeliveryBackend } from './delivery/backend';
 
 const execFileAsync = promisify(execFile);
 
@@ -123,8 +124,12 @@ async function openViaUri(
 }
 
 /**
- * Send a note to Obsidian. Uses the Obsidian CLI by default,
- * falls back to URI scheme if --uri is set or CLI is not available.
+ * Send a note to the target app via the DeliveryBackend.
+ *
+ * The backend is selected at build time via DELIVERY_BACKEND (Logseq in this
+ * build). The Obsidian CLI fast-path (`obsidian` shell command) is only
+ * attempted when DELIVERY_BACKEND === 'obsidian'; Logseq has no equivalent
+ * CLI, so we always go through the backend's URI builder.
  */
 export async function openInObsidian(
 	fileContent: string,
@@ -135,11 +140,17 @@ export async function openInObsidian(
 	silent: boolean,
 	forceUri: boolean
 ): Promise<string> {
-	if (!forceUri && await hasObsidianCli()) {
+	// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+	if (DELIVERY_BACKEND === 'obsidian' && !forceUri && await hasObsidianCli()) {
 		const result = await openViaObsidianCli(fileContent, noteName, path, vault, behavior, silent);
 		return result;
 	}
 
-	await openViaUri(fileContent, noteName, path, vault, behavior, silent);
-	return `Opened in Obsidian${vault ? ` (vault: ${vault})` : ''}`;
+	// Delegate to the active DeliveryBackend. In a Logseq build this produces
+	// a logseq://x-callback-url/quickCapture URL and opens it via the OS
+	// handler (cli-stubs.ts intercepts the runtime.sendMessage call).
+	const backend = getDeliveryBackend();
+	await backend.save({ fileContent, noteName, path, vault, behavior, silentOpen: silent });
+	const targetName = backend.kind === 'logseq' ? 'Logseq' : 'Obsidian';
+	return `Opened in ${targetName}${vault ? ` (vault: ${vault})` : ''}`;
 }

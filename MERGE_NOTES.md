@@ -59,6 +59,7 @@ Manual browser test instructions:
 - **`window.__obsidianHighlighter` global**: kept as-is (upstream renamed from fork's `logseqHighlighterInitialized` boolean to an API bridge object). If both Obsidian Web Clipper AND Logseq Web Clipper are installed in the same browser, they would clash on this global. Niche scenario; documented for future fix.
 - **DOM element IDs** (`obsidian-clipper-iframe`, `obsidian-clipper-container`): same niche clash risk if both extensions run on the same page.
 - **Vault UI**: vault settings section in settings.html is hidden for Logseq via runtime DOM manipulation. The vault dropdown in popup self-hides when no vaults are configured. Users who manually add vaults via the (now-hidden) settings UI could still see the dropdown, but the Logseq backend ignores the vault param.
-- **CLI / API bin name**: published as `logseq-clipper` (see Phase 7).
-- **Both-extensions-running scenario**: not handled; would require renaming all internal identifiers (against minimal-rebrand decision).
+- **CLI / API bin name**: published as `logseq-clipper` (see Phase 7). CLI help text now says `Usage: logseq-clipper <url>`. The CLI routes through the DeliveryBackend so `--open --uri` produces `logseq://x-callback-url/quickCapture` URLs.
+- **`dayjs/plugin/isoWeek` API import failure**: importing the built `dist/api.mjs` in Node fails with "Cannot find module dayjs/plugin/isoWeek" (newer Node requires the `.js` suffix). **Pre-existing in upstream** — same error reproduces on obsidian-clipper. Not a regression; will be fixed upstream eventually.
+- **`window.__obsidianHighlighter` global**: kept as-is (upstream renamed from fork's `logseqHighlighterInitialized` boolean to an API bridge object). If both Obsidian Web Clipper AND Logseq Web Clipper are installed in the same browser, they would clash on this global. Niche scenario; documented for future fix.
 

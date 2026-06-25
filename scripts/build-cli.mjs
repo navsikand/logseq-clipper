@@ -45,6 +45,9 @@ await esbuild.build({
 	],
 	define: {
 		'DEBUG_MODE': 'false',
+		// Route all CLI clips through the Logseq backend (Logseq variant of the clipper).
+		// See docs/delivery-backend.md.
+		'DELIVERY_BACKEND': '"logseq"',
 	},
 	alias: {
 		'webextension-polyfill': path.join(root, 'src/utils/cli-stubs.ts'),
