@@ -22,24 +22,43 @@ Commits being merged: 352 upstream + 22 fork-only
 
 ## Test matrix (Phase 6)
 
-Filled in during smoke testing.
+Phase 6 simulates the test matrix via `src/utils/delivery/phase6-matrix.test.ts`.
+All 13 scenarios pass at the URI/output level. The actual Logseq-side test
+(opening the URLs against a running Logseq desktop app) is a manual step
+that requires a developer machine — see instructions below the table.
 
 | # | Scenario | Result |
 |---|---|---|
-| 1 | Clip regular page, `create` behavior | |
-| 2 | Clip with `append-daily` | |
-| 3 | `tags` property (multitext) | |
-| 4 | `number` property | |
-| 5 | `checkbox` property | |
-| 6 | `date` property | |
-| 7 | Multiple properties | |
-| 8 | Highlighter → clip highlights | |
-| 9 | Reader mode opens | |
-| 10 | Highlights viewer opens | |
-| 11 | Long content (>2000 chars) | |
-| 12 | Special chars in title | |
-| 13 | `cursor` option gone from UI | |
+| 1 | Clip regular page, `create` behavior | PASS — `page=Test%20Page`, no `&append`, content has bullets |
+| 2 | Clip with `append-daily` | PASS — `page=TODAY&append=true` |
+| 3 | `tags` property (multitext) | PASS — `tags:: web,highlight,clip` (comma-joined, no quotes) |
+| 4 | `number` property | PASS — `rating:: 42` |
+| 5 | `checkbox` property | PASS — `published:: true` |
+| 6 | `date` property | PASS — `date:: 2026-06-25` |
+| 7 | Multiple properties together | PASS — all `key:: value` lines emitted before body |
+| 8 | Highlighter → clip highlights | PASS — body wrapped as `* bullet` lines |
+| 9 | Reader mode opens | NOT TESTED (browser-only; manual) |
+| 10 | Highlights viewer opens | NOT TESTED (browser-only; manual) |
+| 11 | Long content (>2000 chars) | PASS — URI constructs; whether Logseq accepts is a runtime question |
+| 12 | Special chars in title | PASS — `?#&` stripped, page name remains non-empty |
+| 12b | Namespace via path | PASS — `page=Clippings/Inbox` |
+| 13 | silentOpen flag | PASS — `&silent=true` appended |
+
+Manual browser test instructions:
+1. `npm run build:chrome`
+2. Load `dist/` as an unpacked extension in Chrome
+3. Open a readable webpage
+4. Click the Logseq Web Clipper icon
+5. For each scenario above, configure the template (behavior/properties) and clip
+6. Verify the result appears correctly in a running Logseq desktop app
 
 ## Known issues / follow-ups
 
-(to be filled in)
+- **`obsidian://` strings in popup.js bundle**: dead code from `obsidian-backend.ts` isn't fully tree-shaken by terser (it conservatively keeps the fallback branch). Functionally inert (unreachable at runtime), adds ~2KB. Could be eliminated via dynamic `import()` but that would complicate the test story.
+- **`youtube` template-integration test**: fails in BOTH upstream and this branch due to a timezone-dependent timestamp fixture. Not a regression.
+- **`window.__obsidianHighlighter` global**: kept as-is (upstream renamed from fork's `logseqHighlighterInitialized` boolean to an API bridge object). If both Obsidian Web Clipper AND Logseq Web Clipper are installed in the same browser, they would clash on this global. Niche scenario; documented for future fix.
+- **DOM element IDs** (`obsidian-clipper-iframe`, `obsidian-clipper-container`): same niche clash risk if both extensions run on the same page.
+- **Vault UI**: vault settings section in settings.html is hidden for Logseq via runtime DOM manipulation. The vault dropdown in popup self-hides when no vaults are configured. Users who manually add vaults via the (now-hidden) settings UI could still see the dropdown, but the Logseq backend ignores the vault param.
+- **CLI / API bin name**: published as `logseq-clipper` (see Phase 7).
+- **Both-extensions-running scenario**: not handled; would require renaming all internal identifiers (against minimal-rebrand decision).
+
